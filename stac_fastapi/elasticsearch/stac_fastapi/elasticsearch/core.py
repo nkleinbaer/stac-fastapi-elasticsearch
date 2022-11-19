@@ -97,7 +97,7 @@ class CoreClient(AsyncBaseCoreClient):
         request: Request = kwargs["request"]
         base_url = str(kwargs["request"].base_url)
 
-        items, maybe_count, next_token = await self.database.execute_search(
+        items, maybe_count, next_token = await self.database.item_search(
             search=self.database.apply_collections_filter(
                 self.database.make_search(), [collection_id]
             ),
@@ -297,7 +297,7 @@ class CoreClient(AsyncBaseCoreClient):
         if search_request.limit:
             limit = search_request.limit
 
-        items, maybe_count, next_token = await self.database.execute_search(
+        items, maybe_count, next_token = await self.database.item_search(
             search=search,
             limit=limit,
             token=search_request.token,  # type: ignore

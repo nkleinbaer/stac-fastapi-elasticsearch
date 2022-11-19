@@ -328,14 +328,40 @@ class DatabaseLogic:
         else:
             return None
 
-    async def execute_search(
-        self,
+
+    async def item_search( self,
         search: Search,
         limit: int,
         token: Optional[str],
         sort: Optional[Dict[str, Dict[str, str]]],
         collection_ids: Optional[List[str]],
+        ignore_unavailable: bool = True,) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
+
+
+        index_param = indices(collection_ids)
+
+        try:
+            results, maybe_count, next_token = await self.execute_search(index_param =index_param,
+                                   limit=limit,
+                                   search=search,
+                                   token=token,
+                                   sort=sort,
+                                   ignore_unavailable=ignore_unavailable)
+
+        except exceptions.NotFoundError:
+            raise NotFoundError(f"Collections '{collection_ids}' do not exist")
+
+        return results, maybe_count, next_token
+
+    async def execute_search(
+        self,
+        index_param: str,
+        limit: int,
+        search: Search,
+        token: Optional[str],
+        sort: Optional[Dict[str, Dict[str, str]]],
         ignore_unavailable: bool = True,
+
     ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
         """Database logic to execute search with limit."""
         search_after = None
@@ -343,8 +369,6 @@ class DatabaseLogic:
             search_after = urlsafe_b64decode(token.encode()).decode().split(",")
 
         query = search.query.to_dict() if search.query else None
-
-        index_param = indices(collection_ids)
 
         search_task = asyncio.create_task(
             self.client.search(
@@ -365,10 +389,7 @@ class DatabaseLogic:
             )
         )
 
-        try:
-            es_response = await search_task
-        except exceptions.NotFoundError:
-            raise NotFoundError(f"Collections '{collection_ids}' do not exist")
+        es_response = await search_task
 
         hits = es_response["hits"]["hits"]
         items = (hit["_source"] for hit in hits)
