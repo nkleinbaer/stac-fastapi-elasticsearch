@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from overrides import overrides
 from pydantic import ValidationError
 from stac_pydantic.links import Relations
-from stac_pydantic.shared import MimeTypes
+from stac_pydantic.shared import MimeTypes  
 from starlette.requests import Request
 
 from stac_fastapi.elasticsearch import serializers
@@ -56,30 +56,39 @@ class CoreClient(AsyncBaseCoreClient):
     @overrides
     async def all_collections(self, **kwargs) -> Collections:
         """Read all collections from the database."""
+        request: Request = kwargs["request"]
         base_url = str(kwargs["request"].base_url)
 
+        if request.query_params is not None:
+            limit = request.query_params.get("limit", 100)
+            token = request.query_params.get("token", None)
+        else:
+            limit = 100
+            token = None
+
+        collections, maybe_count, next_token =  await self.database.get_all_collections(limit=limit, token=token)
+
+        collections = [
+            self.collection_serializer.db_to_stac(collection, base_url=base_url) for collection in collections
+        ]
+
+        # context_obj = None
+        # if self.extension_is_enabled("ContextExtension"):
+        #     context_obj = {
+        #         "returned": len(collections),
+        #         "limit": limit,
+        #     }
+        #     if maybe_count is not None:
+        #         context_obj["matched"] = maybe_count
+
+        links = []
+        if next_token:
+            links = await PagingLinks(request=request, next=next_token).get_links()
+
         return Collections(
-            collections=[
-                self.collection_serializer.db_to_stac(c, base_url=base_url)
-                for c in await self.database.get_all_collections()
-            ],
-            links=[
-                {
-                    "rel": Relations.root.value,
-                    "type": MimeTypes.json,
-                    "href": base_url,
-                },
-                {
-                    "rel": Relations.parent.value,
-                    "type": MimeTypes.json,
-                    "href": base_url,
-                },
-                {
-                    "rel": Relations.self.value,
-                    "type": MimeTypes.json,
-                    "href": urljoin(base_url, "collections"),
-                },
-            ],
+            collections=collections,
+            links=links,
+            # context=context_obj
         )
 
     @overrides

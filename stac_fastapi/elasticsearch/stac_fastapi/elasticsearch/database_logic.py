@@ -32,6 +32,10 @@ DEFAULT_SORT = {
     "collection": {"order": "desc"},
 }
 
+COLLECTIONS_SORT = {
+    "id": {"order": "desc"},
+}
+
 ES_ITEMS_SETTINGS = {
     "index": {
         "sort.field": list(DEFAULT_SORT.keys()),
@@ -210,12 +214,12 @@ class DatabaseLogic:
 
     """CORE LOGIC"""
 
-    async def get_all_collections(self) -> Iterable[Dict[str, Any]]:
+    async def get_all_collections(self, limit: int, token = Optional[str] ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
         """Database logic to retrieve a list of all collections."""
-        # https://github.com/stac-utils/stac-fastapi-elasticsearch/issues/65
-        # collections should be paginated, but at least return more than the default 10 for now
-        collections = await self.client.search(index=COLLECTIONS_INDEX, size=1000)
-        return (c["_source"] for c in collections["hits"]["hits"])
+        collections, maybe_count, next_token = await self.execute_search(index_param=COLLECTIONS_INDEX,
+                                                                         search=self.make_search(),
+                                                                         sort=COLLECTIONS_SORT, limit=limit, token=token)
+        return collections, maybe_count, next_token
 
     async def get_one_item(self, collection_id: str, item_id: str) -> Dict:
         """Database logic to retrieve a single item."""
@@ -341,25 +345,25 @@ class DatabaseLogic:
         index_param = indices(collection_ids)
 
         try:
-            results, maybe_count, next_token = await self.execute_search(index_param =index_param,
+            items, maybe_count, next_token = await self.execute_search(index_param =index_param,
                                    limit=limit,
                                    search=search,
                                    token=token,
-                                   sort=sort,
+                                   sort=sort or DEFAULT_SORT,
                                    ignore_unavailable=ignore_unavailable)
 
         except exceptions.NotFoundError:
             raise NotFoundError(f"Collections '{collection_ids}' do not exist")
 
-        return results, maybe_count, next_token
+        return items, maybe_count, next_token
 
     async def execute_search(
         self,
         index_param: str,
         limit: int,
         search: Search,
-        token: Optional[str],
-        sort: Optional[Dict[str, Dict[str, str]]],
+        token: Optional[str] = None,
+        sort: Optional[Dict[str, Dict[str, str]]] = None,
         ignore_unavailable: bool = True,
 
     ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
@@ -375,7 +379,7 @@ class DatabaseLogic:
                 index=index_param,
                 ignore_unavailable=ignore_unavailable,
                 query=query,
-                sort=sort or DEFAULT_SORT,
+                sort=sort,
                 search_after=search_after,
                 size=limit,
             )
@@ -392,7 +396,7 @@ class DatabaseLogic:
         es_response = await search_task
 
         hits = es_response["hits"]["hits"]
-        items = (hit["_source"] for hit in hits)
+        results = (hit["_source"] for hit in hits)
 
         next_token = None
         if hits and (sort_array := hits[-1].get("sort")):
@@ -409,7 +413,7 @@ class DatabaseLogic:
             except Exception as e:
                 logger.error(f"Count task failed: {e}")
 
-        return items, maybe_count, next_token
+        return results, maybe_count, next_token
 
     """ TRANSACTION LOGIC """
 
