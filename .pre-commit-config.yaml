@@ -8,7 +8,8 @@ repos:
     hooks:
       - id: black
         args: [ '--safe' ]
-  - repo: https://gitlab.com/pycqa/flake8
+  - repo: https://github.com/PyCQA/flake8
+    # https://www.reddit.com/r/Python/comments/yvfww8/flake8_took_down_the_gitlab_repository_in_favor/
     rev: 4.0.1
     hooks:
       - id: flake8
