@@ -1,8 +1,9 @@
 import uuid
-from time import sleep
+
 import pystac
 
 from ..conftest import create_collection
+
 
 async def test_create_and_delete_collection(app_client, load_test_data):
     """Test creation and deletion of a collection"""
@@ -15,6 +16,7 @@ async def test_create_and_delete_collection(app_client, load_test_data):
     resp = await app_client.delete(f"/collections/{test_collection['id']}")
     assert resp.status_code == 200
 
+
 async def test_paginate_collections(app_client, ctx, txn_client):
     """Test creation and pagination of collections"""
     ids = [ctx.collection["id"]]
@@ -22,11 +24,9 @@ async def test_paginate_collections(app_client, ctx, txn_client):
         ctx.item["id"] = str(uuid.uuid4())
         await create_collection(txn_client, ctx.item)
         ids.append(ctx.item["id"])
-    #sleep(1)
+
     # Paginate through all 6 collections with a limit of 1 (expecting 7 requests)
-    page = await app_client.get(
-        f"/collections", params={"limit": 1}
-    )
+    page = await app_client.get("/collections", params={"limit": 1})
 
     collection_ids = []
 

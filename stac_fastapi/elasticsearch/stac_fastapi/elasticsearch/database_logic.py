@@ -214,11 +214,17 @@ class DatabaseLogic:
 
     """CORE LOGIC"""
 
-    async def get_all_collections(self, limit: int, token = Optional[str] ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
+    async def get_all_collections(
+        self, limit: int, token=Optional[str]
+    ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
         """Database logic to retrieve a list of all collections."""
-        collections, maybe_count, next_token = await self.execute_search(index_param=COLLECTIONS_INDEX,
-                                                                         search=self.make_search(),
-                                                                         sort=COLLECTIONS_SORT, limit=limit, token=token)
+        collections, maybe_count, next_token = await self.execute_search(
+            index_param=COLLECTIONS_INDEX,
+            search=self.make_search(),
+            sort=COLLECTIONS_SORT,
+            limit=limit,
+            token=token,
+        )
         return collections, maybe_count, next_token
 
     async def get_one_item(self, collection_id: str, item_id: str) -> Dict:
@@ -332,25 +338,27 @@ class DatabaseLogic:
         else:
             return None
 
-
-    async def item_search( self,
+    async def item_search(
+        self,
         search: Search,
         limit: int,
         token: Optional[str],
         sort: Optional[Dict[str, Dict[str, str]]],
         collection_ids: Optional[List[str]],
-        ignore_unavailable: bool = True,) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
-
-
+        ignore_unavailable: bool = True,
+    ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
+        """Database logic to execute search for items."""
         index_param = indices(collection_ids)
 
         try:
-            items, maybe_count, next_token = await self.execute_search(index_param =index_param,
-                                   limit=limit,
-                                   search=search,
-                                   token=token,
-                                   sort=sort or DEFAULT_SORT,
-                                   ignore_unavailable=ignore_unavailable)
+            items, maybe_count, next_token = await self.execute_search(
+                index_param=index_param,
+                limit=limit,
+                search=search,
+                token=token,
+                sort=sort or DEFAULT_SORT,
+                ignore_unavailable=ignore_unavailable,
+            )
 
         except exceptions.NotFoundError:
             raise NotFoundError(f"Collections '{collection_ids}' do not exist")
@@ -365,9 +373,8 @@ class DatabaseLogic:
         token: Optional[str] = None,
         sort: Optional[Dict[str, Dict[str, str]]] = None,
         ignore_unavailable: bool = True,
-
     ) -> Tuple[Iterable[Dict[str, Any]], Optional[int], Optional[str]]:
-        """Database logic to execute search with limit."""
+        """Database logic to perform paginated ES search and get total matched count."""
         search_after = None
         if token:
             search_after = urlsafe_b64decode(token.encode()).decode().split(",")

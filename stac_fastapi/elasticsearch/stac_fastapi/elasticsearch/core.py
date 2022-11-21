@@ -4,15 +4,12 @@ import logging
 from datetime import datetime as datetime_type
 from datetime import timezone
 from typing import Any, Dict, List, Optional, Type, Union
-from urllib.parse import urljoin
 
 import attr
 import stac_pydantic.api
 from fastapi import HTTPException
 from overrides import overrides
 from pydantic import ValidationError
-from stac_pydantic.links import Relations
-from stac_pydantic.shared import MimeTypes  
 from starlette.requests import Request
 
 from stac_fastapi.elasticsearch import serializers
@@ -66,10 +63,13 @@ class CoreClient(AsyncBaseCoreClient):
             limit = 100
             token = None
 
-        collections, maybe_count, next_token =  await self.database.get_all_collections(limit=limit, token=token)
+        collections, maybe_count, next_token = await self.database.get_all_collections(
+            limit=limit, token=token
+        )
 
         collections = [
-            self.collection_serializer.db_to_stac(collection, base_url=base_url) for collection in collections
+            self.collection_serializer.db_to_stac(collection, base_url=base_url)
+            for collection in collections
         ]
 
         # context_obj = None
@@ -424,7 +424,9 @@ class TransactionsClient(AsyncBaseTransactionsClient):
             collection_id=collection["id"], base_url=base_url
         ).create_links()
         collection["links"] = collection_links
-        await self.database.create_collection(collection=collection, refresh=kwargs.get("refresh", False))
+        await self.database.create_collection(
+            collection=collection, refresh=kwargs.get("refresh", False)
+        )
 
         return CollectionSerializer.db_to_stac(collection, base_url)
 
