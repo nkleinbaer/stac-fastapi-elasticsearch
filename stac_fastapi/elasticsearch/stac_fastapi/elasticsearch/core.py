@@ -244,6 +244,11 @@ class CoreClient(AsyncBaseCoreClient):
 
         search = self.database.make_search()
 
+        if search_request.esquery:
+            search = self.database.apply_esquery(
+                search=search, search_body=search_request.esquery
+            )
+
         if search_request.ids:
             search = self.database.apply_ids_filter(
                 search=search, item_ids=search_request.ids

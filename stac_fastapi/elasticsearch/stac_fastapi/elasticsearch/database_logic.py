@@ -236,6 +236,11 @@ class DatabaseLogic:
         return Search().sort(*DEFAULT_SORT)
 
     @staticmethod
+    def apply_esquery(search: Search, search_body: Dict[Any, Any]):
+        """Database logic to search using ES Query DSL."""
+        return search.from_dict(search_body)
+
+    @staticmethod
     def apply_ids_filter(search: Search, item_ids: List[str]):
         """Database logic to search a list of STAC item ids."""
         return search.filter("terms", id=item_ids)

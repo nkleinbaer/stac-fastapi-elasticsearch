@@ -22,6 +22,7 @@ from stac_fastapi.elasticsearch.core import (
     TransactionsClient,
 )
 from stac_fastapi.elasticsearch.database_logic import create_collection_index
+from stac_fastapi.elasticsearch.extensions.esquery import ESQueryExtension
 from stac_fastapi.extensions.core import (  # FieldsExtension,
     ContextExtension,
     TokenPaginationExtension,
@@ -151,6 +152,7 @@ async def app():
         FixedQueryExtension(),
         TokenPaginationExtension(),
         FixedFilterExtension(),
+        ESQueryExtension(),
     ]
 
     post_request_model = create_post_request_model(extensions)

@@ -437,6 +437,26 @@ async def test_item_search_sort_get(app_client, ctx, txn_client):
     assert resp_json["features"][1]["id"] == second_item["id"]
 
 
+async def test_item_search_esquery(app_client, ctx):
+    """Test POST search with JSONB query (query extension)"""
+    test_item = ctx.item
+    epsg = test_item["properties"]["proj:epsg"]
+
+    params = {"esquery": {"query": {"term": {"properties.proj:epsg": {"value": epsg}}}}}
+    resp = await app_client.post("/search", json=params)
+    assert resp.status_code == 200
+    resp_json = resp.json()
+    assert len(resp_json["features"]) == 1
+
+    params = {
+        "esquery": {"query": {"term": {"properties.proj:epsg": {"value": epsg + 1}}}}
+    }
+    resp = await app_client.post("/search", json=params)
+    assert resp.status_code == 200
+    resp_json = resp.json()
+    assert len(resp_json["features"]) == 0
+
+
 async def test_item_search_post_without_collection(app_client, ctx):
     """Test POST search without specifying a collection"""
     test_item = ctx.item
