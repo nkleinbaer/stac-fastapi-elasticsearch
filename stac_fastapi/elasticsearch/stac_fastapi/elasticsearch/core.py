@@ -424,7 +424,7 @@ class TransactionsClient(AsyncBaseTransactionsClient):
             collection_id=collection["id"], base_url=base_url
         ).create_links()
         collection["links"] = collection_links
-        await self.database.create_collection(collection=collection)
+        await self.database.create_collection(collection=collection, refresh=kwargs.get("refresh", False))
 
         return CollectionSerializer.db_to_stac(collection, base_url)
 
