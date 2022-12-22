@@ -438,7 +438,7 @@ async def test_item_search_sort_get(app_client, ctx, txn_client):
 
 
 async def test_item_search_esquery(app_client, ctx):
-    """Test POST search with JSONB query (query extension)"""
+    """Test POST search with Elasticsearch DSL Query (esquery extension)"""
     test_item = ctx.item
     epsg = test_item["properties"]["proj:epsg"]
 
